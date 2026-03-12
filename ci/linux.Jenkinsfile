@@ -50,6 +50,38 @@ pipeline {
       } }
     }
 
+    stage('Install OpenGL libs') {
+      steps {
+        sh '''
+          apt-get update
+          apt-get install -y libgl1 libegl1 libopengl0
+        '''
+      }
+    }
+
+    stage('Smoke Test') {
+      steps { script {
+        sh '''
+          set +e
+          APPIMAGE=$(find result/ -name "*.AppImage" -print -quit)
+          timeout 10 "$APPIMAGE" --appimage-extract-and-run -platform offscreen 2>&1 | tee /tmp/logos-launch.log
+          CODE=${PIPESTATUS[0]}
+          set -e
+          if grep -qE "QQmlApplicationEngine failed|module.*is not installed|Cannot assign|failed to load component" /tmp/logos-launch.log; then
+            echo "Critical QML errors detected"
+            cat /tmp/logos-launch.log
+            exit 1
+          fi
+          if [ "$CODE" -ne 124 ] && [ "$CODE" -ne 0 ]; then
+            echo "App crashed with exit code $CODE"
+            cat /tmp/logos-launch.log
+            exit 1
+          fi
+          echo "Smoke test passed"
+        '''
+      } }
+    }
+
     stage('Package') {
       steps {
         sh 'mkdir -p pkg'
