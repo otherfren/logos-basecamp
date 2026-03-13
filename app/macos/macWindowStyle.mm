@@ -6,10 +6,12 @@
 
 #include "macWindowStyle.h"
 #include <QMainWindow>
+#include <QGuiApplication>
 
 void applyMacWindowRoundedCorners(QMainWindow* w, bool rounded)
 {
 #ifdef Q_OS_MAC
+    if (QGuiApplication::platformName() == "offscreen") return;
     if (!w) return;
     NSView* nsView = (NSView*)w->winId();
     if (!nsView) return;
