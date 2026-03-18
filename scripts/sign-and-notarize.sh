@@ -14,9 +14,12 @@ set -euo pipefail
 #   MACOS_KEYCHAIN_FILE        - Path to the .p12 certificate file
 ###############################################################################
 
-APP_BUNDLE="./LogosApp.app"
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf '$TEMP_DIR'" EXIT
+
+APP_BUNDLE="./result/LogosApp.app"
 CONTENTS="${APP_BUNDLE}/Contents"
-ENTITLEMENTS="entitlements.plist"
+ENTITLEMENTS="${TEMP_DIR}/entitlements.plist"
 KEYCHAIN_NAME="build.keychain"
 DMG_NAME="LogosApp.dmg"
 
@@ -29,7 +32,18 @@ CODESIGN_OPTS=(
 )
 
 ###############################################################################
-# 0. Create entitlements file
+# 0. Copy app to temp directory and fix permissions (critical!)
+###############################################################################
+echo "==> Copying app bundle to temp directory..."
+cp -a "${APP_BUNDLE}" "${TEMP_DIR}/"
+APP_BUNDLE="${TEMP_DIR}/LogosApp.app"
+CONTENTS="${APP_BUNDLE}/Contents"
+
+echo "==> Setting write permissions..."
+chmod -R u+w "${APP_BUNDLE}"
+
+###############################################################################
+# 1. Create entitlements file
 ###############################################################################
 echo "==> Creating entitlements..."
 cat > "${ENTITLEMENTS}" <<'EOF'
