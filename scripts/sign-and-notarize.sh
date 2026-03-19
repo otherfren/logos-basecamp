@@ -190,15 +190,15 @@ EOF
   security import "${CERT_DIR}/DeveloperIDG2CA.cer"  -k "${KEYCHAIN_DB_PATH}" -t cert
 
   echo "Setting trust for CA certs..."
-  security add-trusted-cert -d -r trustRoot \
+  security add-trusted-cert -r trustRoot \
       -k "${KEYCHAIN_DB_PATH}" \
       "${CERT_DIR}/AppleRootCA-G2.cer"
 
-  security add-trusted-cert -d -r trustAsRoot \
+  security add-trusted-cert -r trustAsRoot \
       -k "${KEYCHAIN_DB_PATH}" \
       "${CERT_DIR}/AppleWWDRCAG2.cer"
 
-  security add-trusted-cert -d -r trustAsRoot \
+  security add-trusted-cert -r trustAsRoot \
       -k "${KEYCHAIN_DB_PATH}" \
       "${CERT_DIR}/DeveloperIDG2CA.cer"
 
