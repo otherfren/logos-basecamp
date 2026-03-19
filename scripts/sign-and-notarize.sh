@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -xuo pipefail
 
 ###############################################################################
 # macOS Code Signing & Notarization for LogosApp.app
