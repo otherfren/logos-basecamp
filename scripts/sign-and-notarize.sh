@@ -160,9 +160,9 @@ EOF
   echo "Importing Apple Trust Chain from local storage..."
   
   # Import the specific G2 files you just copied over
-  security import "${CERT_DIR}/AppleDeveloperIDCA.cer" -k "${KEYCHAIN_DB_PATH}" -t cert -a
-  security import "${CERT_DIR}/AppleRootCA-G2.cer" -k "${KEYCHAIN_DB_PATH}" -t cert -a
-  security import "${CERT_DIR}/AppleWWDRCAG3.cer" -k "${KEYCHAIN_DB_PATH}" -t cert -a
+  security import "${CERT_DIR}/AppleDeveloperIDCA.cer" -k "${KEYCHAIN_DB_PATH}" -t cert
+  security import "${CERT_DIR}/AppleRootCA-G2.cer" -k "${KEYCHAIN_DB_PATH}" -t cert
+  security import "${CERT_DIR}/AppleWWDRCAG3.cer" -k "${KEYCHAIN_DB_PATH}" -t cert
 
   # Ensure the system looks at our build keychain first
   security list-keychains -d user -s "${KEYCHAIN_DB_PATH}" /Library/Keychains/System.keychain
