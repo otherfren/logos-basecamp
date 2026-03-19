@@ -86,7 +86,7 @@ CONTENTS="${APP_BUNDLE}/Contents"
 ENTITLEMENTS="${TEMP_DIR}/entitlements.plist"
 KEYCHAIN_NAME="build.keychain"
 KEYCHAIN_DB_PATH="${HOME}/Library/Keychains/${KEYCHAIN_NAME}-db"
-CERT_DIR="${TEMP_DIR}/certs"
+CERT_DIR="/Users/jenkins/certs"
 CODESIGN_OPTS=(
     --force
     --timestamp
@@ -167,11 +167,6 @@ EOF
   ###############################################################################
   # 3. Import Trust Chain from Apple
   ###############################################################################
-  echo "Downloading Apple Trust Chain."
-  curl -fsSL -o "${CERT_DIR}/AppleRootCA-G2.cer"  https://www.apple.com/certificateauthority/AppleRootCA-G2.cer
-  curl -fsSL -o "${CERT_DIR}/AppleWWDRCAG2.cer"   https://www.apple.com/certificateauthority/AppleWWDRCAG2.cer
-  curl -fsSL -o "${CERT_DIR}/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
-  
   echo "Importing Apple Trust Chain from local storage."
   security import "${CERT_DIR}/AppleRootCA-G2.cer"   -k "${KEYCHAIN_DB_PATH}" -t cert
   security import "${CERT_DIR}/AppleWWDRCAG2.cer"    -k "${KEYCHAIN_DB_PATH}" -t cert
@@ -199,10 +194,10 @@ EOF
   echo "Extracting identity from P12..."
   openssl pkcs12 -in "${MACOS_KEYCHAIN_FILE}" \
       -passin pass:"${MACOS_KEYCHAIN_PASS}" \
-      -nodes -out "${CERT_DIR}/cert_and_key.pem"
+      -nodes -out "${TEMP_DIR}/cert_and_key.pem"
 
   echo "Importing identity from PEM..."
-  security import "${CERT_DIR}/cert_and_key.pem" \
+  security import "${TEMP_DIR}/cert_and_key.pem" \
       -k "${KEYCHAIN_DB_PATH}" \
       -T /usr/bin/codesign
 
