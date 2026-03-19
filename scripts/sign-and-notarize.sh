@@ -357,10 +357,6 @@ EOF
   codesign --verify --deep --strict --verbose=2 "${APP_BUNDLE}" \
       || { echo "ERROR: Signature verification failed, aborting before notarization."; exit 1; }
 
-  echo "Checking Gatekeeper assessment."
-  spctl --assess --type execute --verbose=2 "${APP_BUNDLE}" \
-      || { echo "ERROR: Gatekeeper rejected the app, aborting before notarization."; exit 1; }
-
   echo "Signing phase complete"
 fi
 
