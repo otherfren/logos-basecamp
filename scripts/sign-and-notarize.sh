@@ -99,7 +99,9 @@ fi
 CONTENTS="${APP_BUNDLE}/Contents"
 ENTITLEMENTS="${TEMP_DIR}/entitlements.plist"
 KEYCHAIN_NAME="build.keychain"
-KEYCHAIN_PATH="${HOME}/Library/Keychains/${KEYCHAIN_NAME}-db"
+KEYCHAIN_PATH="${HOME}/Library/Keychains/${KEYCHAIN_NAME}"
+KEYCHAIN_DB_PATH="${KEYCHAIN_PATH}-db"
+CERT_DIR="/Users/jenkins/certs"
 
 # Codesign options — hardened runtime required for notarization
 # Try to extract identity from env var or use the full identity string
@@ -146,46 +148,43 @@ EOF
   ###############################################################################
   # 1. Set up a temporary keychain and import the certificate
   ###############################################################################
-  echo "Ensuring exact Apple Trust Chain for Developer ID G2..."
+  echo "Setting up keychain at ${KEYCHAIN_DB_PATH}"
+  security delete-keychain "${KEYCHAIN_DB_PATH}" 2>/dev/null || true
+  security create-keychain -p "${MACOS_KEYCHAIN_PASS}" "${KEYCHAIN_PATH}"
+  security unlock-keychain -p "${MACOS_KEYCHAIN_PASS}" "${KEYCHAIN_PATH}"
+  security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
 
-  # 1. Developer ID Intermediate G2 (This matches your 'issu' blob)
-  curl -sL https://developer.apple.com/certificationauthority/DeveloperIDG2CA.cer -o /tmp/DevIDG2.cer
+  ###############################################################################
+  # 2. Import Trust Chain (No more curl!)
+  ###############################################################################
+  echo "Importing Apple Trust Chain from local storage..."
   
-  # 2. Apple Root CA - G2 (The root for the G2 chain)
-  curl -sL https://www.apple.com/appleca/AppleRootCA-G2.cer -o /tmp/AppleRootG2.cer
+  # Import the specific G2 files you just copied over
+  security import "${CERT_DIR}/AppleDeveloperIDCA.cer" -k "${KEYCHAIN_DB_PATH}" -t cert -a
+  security import "${CERT_DIR}/AppleRootCA-G2.cer" -k "${KEYCHAIN_DB_PATH}" -t cert -a
+  security import "${CERT_DIR}/AppleWWDRCAG3.cer" -k "${KEYCHAIN_DB_PATH}" -t cert -a
 
-  # 3. Worldwide Developer Relations (Always good to have for general Darwin trust)
-  curl -sL https://developer.apple.com/certificationauthority/AppleWWDRCAG3.cer -o /tmp/WWDRG3.cer
+  # Ensure the system looks at our build keychain first
+  security list-keychains -d user -s "${KEYCHAIN_DB_PATH}" /Library/Keychains/System.keychain
 
-  echo "Importing certificates into ${KEYCHAIN_PATH}..."
-  security import /tmp/DevIDG2.cer -k "${KEYCHAIN_PATH}" -A
-  security import /tmp/AppleRootG2.cer -k "${KEYCHAIN_PATH}" -A
-  security import /tmp/WWDRG3.cer -k "${KEYCHAIN_PATH}" -A
-
-  # CRITICAL: Re-establish the search list with the absolute path
-  security list-keychains -d user -s "${KEYCHAIN_PATH}" /Library/Keychains/System.keychain
-
-  echo "Importing your Identity..."
+  ###############################################################################
+  # 3. Import Identity and Set Permissions
+  ###############################################################################
+  echo "Importing Identity P12..."
   security import "${MACOS_KEYCHAIN_FILE}" \
-      -k "${KEYCHAIN_PATH}" \
+      -k "${KEYCHAIN_DB_PATH}" \
       -P "${MACOS_KEYCHAIN_PASS}" \
-      -T /usr/bin/codesign \
-      -T /usr/bin/security \
+      -t agg \
       -A
 
-  echo "Setting key partition list for Sequoia..."
-  security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_KEYCHAIN_PASS}" "${KEYCHAIN_PATH}"
+  # This is the 'magic' command for Sequoia to allow codesign access
+  security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_KEYCHAIN_PASS}" "${KEYCHAIN_DB_PATH}"
 
-  echo "Final Verification:"
-  # This should now show '1 valid identities found'
-  security find-identity -v "${KEYCHAIN_PATH}"
-
-  # Debug command
-  echo "Verifying the cert if its valid"
-  security verify-cert -c "${MACOS_KEYCHAIN_FILE}" -p codesigning
-  
-  echo "Debug: Dump of build.keychain"
-  security dump-keychain "${KEYCHAIN_PATH}" 2>&1 | head -50 || true
+  ###############################################################################
+  # 4. Final Validation
+  ###############################################################################
+  echo "Final Identity check:"
+  security find-identity -v "${KEYCHAIN_DB_PATH}"
 
   ###############################################################################
   # 2. Sign + repack .lgx archives in Contents/preinstall/
