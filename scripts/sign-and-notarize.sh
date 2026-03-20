@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 
 ###############################################################################
 # macOS Code Signing & Notarization for LogosBasecamp.app
@@ -80,14 +80,15 @@ if [[ ! "$MODE" =~ ^(sign|notarize|both)$ ]]; then
 fi
 
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf '${TEMP_DIR}'" EXIT
+CERTS_DIR="/Users/jenkins/certs"
+mkdir -p "${CERTS_DIR}"
+trap "rm -rf '${TEMP_DIR}' '${CERTS_DIR}'" EXIT
 
 APP_BUNDLE="${TEMP_DIR}/LogosBasecamp.app"
 CONTENTS="${APP_BUNDLE}/Contents"
 ENTITLEMENTS="${TEMP_DIR}/entitlements.plist"
 KEYCHAIN_NAME="build.keychain"
 KEYCHAIN_DB_PATH="${HOME}/Library/Keychains/${KEYCHAIN_NAME}-db"
-CERT_DIR="/Users/jenkins/certs2"
 
 # Codesign options — hardened runtime required for notarization
 CODESIGN_OPTS=(
@@ -169,15 +170,14 @@ EOF
   # 3. Import Trust Chain from Apple
   ###############################################################################
   echo "Downloading Apple Trust Chain."
-  mkdir -p "${CERT_DIR}"
-  curl -fsSL -o "${CERT_DIR}/AppleRootCA-G2.cer"  https://www.apple.com/certificateauthority/AppleRootCA-G2.cer
-  curl -fsSL -o "${CERT_DIR}/AppleWWDRCAG2.cer"   https://www.apple.com/certificateauthority/AppleWWDRCAG2.cer
-  curl -fsSL -o "${CERT_DIR}/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+  curl -fsSL -o "${CERTS_DIR}/AppleRootCA-G2.cer"  https://www.apple.com/certificateauthority/AppleRootCA-G2.cer
+  curl -fsSL -o "${CERTS_DIR}/AppleWWDRCAG2.cer"   https://www.apple.com/certificateauthority/AppleWWDRCAG2.cer
+  curl -fsSL -o "${CERTS_DIR}/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
 
   echo "Importing Apple Trust Chain from local storage."
-  security import "${CERT_DIR}/AppleRootCA-G2.cer"   -k "${KEYCHAIN_DB_PATH}" -t cert
-  security import "${CERT_DIR}/AppleWWDRCAG2.cer"    -k "${KEYCHAIN_DB_PATH}" -t cert
-  security import "${CERT_DIR}/DeveloperIDG2CA.cer"  -k "${KEYCHAIN_DB_PATH}" -t cert
+  security import "${CERTS_DIR}/AppleRootCA-G2.cer"   -k "${KEYCHAIN_DB_PATH}" -t cert
+  security import "${CERTS_DIR}/AppleWWDRCAG2.cer"    -k "${KEYCHAIN_DB_PATH}" -t cert
+  security import "${CERTS_DIR}/DeveloperIDG2CA.cer"  -k "${KEYCHAIN_DB_PATH}" -t cert
 
   # Ensure the system looks at our build keychain first
   security list-keychains -d user -s "${KEYCHAIN_DB_PATH}" /Library/Keychains/System.keychain
@@ -239,7 +239,7 @@ EOF
   echo "Signing dylibs in Frameworks."
   while IFS= read -r dylib; do
       [[ -n "$dylib" ]] || continue
-      echo "  Signing: ${dylib}"
+      echo "Signing: ${dylib}"
       codesign_with_retry "${CODESIGN_OPTS[@]}" "$dylib" \
           || { echo "ERROR: failed to sign ${dylib}"; exit 1; }
   done < <(find "${CONTENTS}/Frameworks" -name '*.dylib' -type f)
@@ -250,7 +250,7 @@ EOF
   echo "Signing dylibs in Resources/qt."
   while IFS= read -r dylib; do
       [[ -n "$dylib" ]] || continue
-      echo "  Signing: ${dylib}"
+      echo "Signing: ${dylib}"
       codesign_with_retry "${CODESIGN_OPTS[@]}" "$dylib" \
           || { echo "ERROR: failed to sign ${dylib}"; exit 1; }
   done < <(find "${CONTENTS}/Resources/qt" -type f -name '*.dylib' 2>/dev/null)
@@ -264,7 +264,7 @@ EOF
       fw_binary="${fw}/Versions/A/${fw_name}"
 
       if [[ -f "${fw_binary}" ]]; then
-          echo "  Signing framework binary: ${fw_binary}"
+          echo "Signing framework binary: ${fw_binary}"
           codesign_with_retry "${CODESIGN_OPTS[@]}" "${fw_binary}" \
               || { echo "ERROR: failed to sign ${fw_binary}"; exit 1; }
       fi
