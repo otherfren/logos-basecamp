@@ -228,6 +228,10 @@ void MainUIBackend::loadUiModule(const QString& moduleName)
             importPaths << QStringLiteral("qrc:/qt-project.org/imports");
             importPaths << QStringLiteral("qrc:/qt/qml");
             importPaths << pluginPath;     // Plugin-local imports only
+            // Add app lib/ directory for Logos design system (Logos.Theme, Logos.Controls)
+            QString appLibPath = QDir(QCoreApplication::applicationDirPath() + QStringLiteral("/../lib")).absolutePath();
+            if (QDir(appLibPath).exists())
+                importPaths << appLibPath;
             qDebug() << "=======================> QML import paths:" << importPaths;
             engine->setImportPathList(importPaths);
 
