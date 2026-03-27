@@ -12,23 +12,27 @@
 #include <QHideEvent>
 #include <QEvent>
 
+// Timer intervals (ms)
+static constexpr int kFastInterval = 4;    // ~250 Hz during active movement
+static constexpr int kIdleInterval = 200;  // Low CPU when nothing is moving
+static constexpr int kIdleThreshold = 10;  // Ticks without movement before going idle
+
 MacEmbedWidget::MacEmbedWidget(EmbedControlChannel* channel, QWidget* parent)
     : OopEmbedWidget(channel, parent)
 {
-    // Dark placeholder so the user sees something before the child overlays it
-    setStyleSheet(QStringLiteral("background-color: #2d2d2d;"));
+    // Transparent placeholder — prevents flickering when the child overlay
+    // lags behind during window drags. Without this the user would see the
+    // dark placeholder flash between child positions.
+    setAttribute(Qt::WA_TranslucentBackground);
+    setStyleSheet(QStringLiteral("background-color: transparent;"));
 
-    // Timer to continuously track our global screen position.
-    // This handles cases where the parent window is dragged (which doesn't
-    // generate events on the child widget).
+    // Adaptive timer: fast during movement, slow when idle.
     m_positionTimer = new QTimer(this);
-    m_positionTimer->setInterval(33); // ~30 fps — balances responsiveness vs CPU
+    m_positionTimer->setInterval(kFastInterval);
     connect(m_positionTimer, &QTimer::timeout, this, &MacEmbedWidget::sendPositionUpdate);
 
     // Track application activation state: hide child OOP windows when the
     // user switches to another app, show them when switching back.
-    // Without this, child windows (which are in a separate process) would
-    // float above other applications.
     connect(qApp, &QApplication::applicationStateChanged, this,
             [this](Qt::ApplicationState state) {
                 if (!m_embedded || !m_channel || !m_channel->isConnected())
@@ -99,17 +103,40 @@ void MacEmbedWidget::sendPositionUpdate()
     QPoint globalPos = mapToGlobal(QPoint(0, 0));
     QSize currentSize = size();
 
-    if (globalPos != m_lastGlobalPos || currentSize != m_lastSize) {
+    bool moved = (globalPos != m_lastGlobalPos);
+    bool resized = (currentSize != m_lastSize);
+
+    if (moved || resized) {
+        // Velocity prediction: extrapolate one step ahead to compensate
+        // for the IPC round-trip latency. This makes the child window
+        // appear to track the parent more closely during drags.
+        QPoint velocity = globalPos - m_lastGlobalPos;
+        QPoint predicted = globalPos + velocity;
+
+        m_prevGlobalPos = m_lastGlobalPos;
         m_lastGlobalPos = globalPos;
         m_lastSize = currentSize;
-        m_channel->sendReposition(globalPos.x(), globalPos.y(),
+
+        m_channel->sendReposition(predicted.x(), predicted.y(),
                                    currentSize.width(), currentSize.height());
+
+        // Position is changing — keep the timer fast
+        m_positionTimer->setInterval(kFastInterval);
+        m_idleCount = 0;
+    } else {
+        // Position is stable — gradually slow down to save CPU
+        if (++m_idleCount >= kIdleThreshold) {
+            m_positionTimer->setInterval(kIdleInterval);
+        }
     }
 }
 
 void MacEmbedWidget::resizeEvent(QResizeEvent* event)
 {
     OopEmbedWidget::resizeEvent(event);
+    // Wake up the fast timer on resize
+    m_positionTimer->setInterval(kFastInterval);
+    m_idleCount = 0;
     sendPositionUpdate();
 }
 
@@ -137,8 +164,11 @@ void MacEmbedWidget::hideEvent(QHideEvent* event)
 bool MacEmbedWidget::event(QEvent* event)
 {
     // Also catch Move events (in case layout/MDI triggers them)
-    if (event->type() == QEvent::Move)
+    if (event->type() == QEvent::Move) {
+        m_positionTimer->setInterval(kFastInterval);
+        m_idleCount = 0;
         sendPositionUpdate();
+    }
     return OopEmbedWidget::event(event);
 }
 

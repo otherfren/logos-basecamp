@@ -36,9 +36,11 @@ private:
 
     QTimer* m_positionTimer = nullptr;
     QPoint m_lastGlobalPos;
+    QPoint m_prevGlobalPos;   // for velocity prediction
     QSize m_lastSize;
     qint64 m_childWinId = 0;
     bool m_embedded = false;
+    int m_idleCount = 0;
 };
 
 #else
