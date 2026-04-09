@@ -117,18 +117,31 @@ Item {
                                         color: modelData.isLoaded ? "#4CAF50" : "#F44336"
                                     }
 
-                                    // CPU (only for loaded)
+                                    // CPU (only for loaded) — split label and value so
+                                    // UI tests can match the literal "CPU:" text exactly.
                                     LogosText {
-                                        text: modelData.isLoaded ? "CPU: " + modelData.cpu + "%" : ""
+                                        text: "CPU:"
                                         color: "#64B5F6"
-                                        Layout.preferredWidth: 80
+                                        visible: modelData.isLoaded
+                                    }
+                                    LogosText {
+                                        text: modelData.cpu + "%"
+                                        color: "#64B5F6"
+                                        visible: modelData.isLoaded
+                                        Layout.preferredWidth: 50
                                     }
 
-                                    // Memory (only for loaded)
+                                    // Memory (only for loaded) — same split as CPU above.
                                     LogosText {
-                                        text: modelData.isLoaded ? "Mem: " + modelData.memory + " MB" : ""
+                                        text: "Mem:"
                                         color: "#81C784"
-                                        Layout.preferredWidth: 100
+                                        visible: modelData.isLoaded
+                                    }
+                                    LogosText {
+                                        text: modelData.memory + " MB"
+                                        color: "#81C784"
+                                        visible: modelData.isLoaded
+                                        Layout.preferredWidth: 70
                                     }
 
                                     Item { Layout.fillWidth: true }
