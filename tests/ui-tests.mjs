@@ -163,6 +163,40 @@ test("modules: leaving and returning to Core Modules preserves loaded state", as
   );
 });
 
+// --- Sidebar: sequential plugin opening ---
+//
+// Regression guard: opening multiple plugins one after another must not
+// crash, hang, or leave the sidebar in an inconsistent state. Each
+// plugin is opened via its sidebar icon, we wait for its UI to load,
+// then move on to the next. Finally we verify all opened plugins are
+// still reachable by switching back to each one.
+
+test("sidebar: open multiple plugins sequentially without failure", async (app) => {
+  // Plugins available in the default fixture build (excluding webview_app
+  // which requires a real display / GPU compositor).
+  const plugins = [
+    { name: "counter",              expect: ["0"] },
+    { name: "counter_qml",         expect: ["0"] },
+    { name: "package_manager_ui",  expect: ["Reload"] },
+  ];
+
+  // Open each plugin sequentially.
+  for (const plugin of plugins) {
+    await openPlugin(app, plugin.name, plugin.expect);
+  }
+
+  // Switch back to each plugin and verify its UI is still intact.
+  // Clicking an already-loaded plugin in the sidebar should activate its
+  // tab without reloading.
+  for (const plugin of plugins) {
+    await app.click(plugin.name);
+    await app.waitFor(
+      async () => { await app.expectTexts(plugin.expect); },
+      { timeout: 10000, interval: 500, description: `"${plugin.name}" still accessible` }
+    );
+  }
+});
+
 // --- Run ---
 
 run();
