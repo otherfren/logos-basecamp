@@ -138,6 +138,31 @@ test("modules: loaded plugins render CPU and memory stats", async (app) => {
   );
 });
 
+test("modules: leaving and returning to Core Modules preserves loaded state", async (app) => {
+  // Navigate to Core Modules and wait for loaded plugins.
+  await app.click("Modules");
+  await app.click("Core Modules");
+
+  await app.waitFor(
+    async () => { await app.expectTexts(["package_manager", "(Loaded)"]); },
+    { timeout: 10000, interval: 500, description: "Core Modules to show loaded plugins" }
+  );
+
+  // Navigate away to Dashboard.
+  await app.click("Dashboard");
+  await app.expectTexts(["Dashboard"]);
+
+  // Navigate back to Modules > Core Modules.
+  await app.click("Modules");
+  await app.click("Core Modules");
+
+  // The previously-loaded modules must still show as "(Loaded)" with stats.
+  await app.waitFor(
+    async () => { await app.expectTexts(["package_manager", "(Loaded)", "Unload Plugin"]); },
+    { timeout: 10000, interval: 500, description: "loaded state to be preserved after returning" }
+  );
+});
+
 // --- Run ---
 
 run();
