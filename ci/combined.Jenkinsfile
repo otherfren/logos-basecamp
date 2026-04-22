@@ -1,5 +1,4 @@
 #!/usr/bin/env groovy
-
 library 'status-jenkins-lib@v1.9.41'
 
 urls = [:]
@@ -66,7 +65,7 @@ pipeline {
         urls['SHA'] = s5cmd.upload(sha)
         jenkins.setBuildDesc(urls)
       }
-       archiveArtifacts("pkg/*.sha256")
+      archiveArtifacts('pkg/*')
     } }
     cleanup {
       cleanWs(disableDeferredWipeout: true)
@@ -89,8 +88,6 @@ def Boolean getPublishDefault(Boolean previousValue) {
 def getArtifacts(key, childBuild) {
   /* Copy artifacts from child build to parent. */
   jenkins.copyArts(childBuild)
-  /* Archive right away to make artifacts available. */
-  archiveArtifacts('pkg/*')
   /* Add new URL from child build and update description. */
   urls[key] = utils.pkgUrl(childBuild)
   jenkins.setBuildDesc(urls)

@@ -306,3 +306,7 @@ if [[ "$MODE" =~ ^(notarize|both)$ ]]; then
 
   echo "Notarization phase complete"
 fi
+
+rm -rf result
+mkdir result
+cp -a "$APP_BUNDLE" result/
