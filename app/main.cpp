@@ -18,6 +18,7 @@
 #include <QDir>
 #include <QTimer>
 #include <QStandardPaths>
+#include <QtWebEngineQuick/QtWebEngineQuick>
 #include <iostream>
 #include <memory>
 #include <QStringList>
@@ -57,6 +58,15 @@ int main(int argc, char *argv[])
 {
     // Set logos mode to Local for testing
     //LogosModeConfig::setMode(LogosMode::Local);
+
+    // Must run before QApplication is constructed. The webview_app plugin uses
+    // QtWebView, but the WebEngine backend (the one QtWebView dispatches to on
+    // desktop Linux) needs this explicit init before a QCoreApplication exists
+    // — QtWebView::initialize() alone only sets a flag and defers real init
+    // until the backend plugin loads, which is too late and segfaults inside
+    // QQuickWebEngineView::profile(). We always pay this cost because plugins
+    // load dynamically and we can't know here whether webview_app will run.
+    QtWebEngineQuick::initialize();
 
     // Create QApplication first
     QApplication app(argc, argv);

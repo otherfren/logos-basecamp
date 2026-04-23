@@ -21,7 +21,7 @@ else()
     set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib:\$ORIGIN/lib")
 endif()
 
-find_package(Qt6 COMPONENTS Widgets RemoteObjects Quick Qml QuickWidgets QuickControls2 Network REQUIRED)
+find_package(Qt6 COMPONENTS Widgets RemoteObjects Quick Qml QuickWidgets QuickControls2 Network WebView WebEngineQuick REQUIRED)
 
 # QML Inspector (Qt DevTools-like inspection over TCP)
 # Enabled by default in Debug builds, disabled in Release.
@@ -168,6 +168,8 @@ target_link_libraries(LogosBasecamp PRIVATE
     Qt6::Qml
     Qt6::QuickWidgets
     Qt6::QuickControls2
+    Qt6::WebView
+    Qt6::WebEngineQuick
     logos_core
     logos_sdk
     $<$<BOOL:${ENABLE_QML_INSPECTOR}>:qml-inspector>
