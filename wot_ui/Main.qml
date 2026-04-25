@@ -394,7 +394,7 @@ Item {
                 anchors.top: parent.top
                 anchors.rightMargin: 4
                 anchors.topMargin: 4
-                width: 64
+                width: 38
                 height: 38
                 hoverEnabled: true
                 ToolTip.visible: hovered
@@ -403,9 +403,9 @@ Item {
                     Image {
                         anchors.centerIn: parent
                         source: "icons/theme.svg"
-                        sourceSize.width: 96
+                        sourceSize.width: 48
                         sourceSize.height: 48
-                        width: 44
+                        width: 22
                         height: 22
                         fillMode: Image.PreserveAspectFit
                         smooth: true
