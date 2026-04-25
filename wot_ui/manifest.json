@@ -1,0 +1,14 @@
+{
+  "author": "otherfren",
+  "category": "misc",
+  "dependencies": [],
+  "description": "Web of Trust — mock UI for Logos (draft, no backend)",
+  "hashes": {},
+  "icon": "icons/wot.svg",
+  "main": {},
+  "manifestVersion": "0.2.0",
+  "name": "wot_ui",
+  "type": "ui_qml",
+  "version": "0.1.0",
+  "view": "Main.qml"
+}
